@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong hack</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            width: 960px;
+            height: 400px;
+            background-color: #ccc;
+        }
+    </style>
+    <script src="./script.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="960" height="400"></canvas>
+<script>
+    var start = function() {
+        var context = document.getElementById('canvas').getContext('2d');
+
+        var Wall = function(x1, y1, x2, y2) {
+            this.hitX = function(newX, newY) {
+                return newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2;
+            };
+            this.hitY = function(newX, newY) {
+                return newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2;
+            };
+
+            this.tick = function() {
+            };
+            this.draw = function() {
+                context.fillStyle = "black";
+                context.fillRect(x1, y1, x2 - x1, y2 - y1);
+            }
+        };
+
+        var Bat = function(x, y, color) {
+            var size = { width: 5, height: 40 };
+            var wall = new Wall(x, y, x + size.width, y + size.height);
+
+            this.hitX = function(newX, newY) {
+                return wall.hitX(newX, newY);
+            };
+            this.hitY = function(newX, newY) {
+                return wall.hitY(newX, newY);
+            };
+
+            this.tick = function() {
+            };
+            this.draw = function() {
+                context.fillStyle = color;
+                context.fillRect(x, y, size.width, size.height);
+            }
+        };
+
+        var Ball = function(x, y, others) {
+            var direction = { x: 1, y: 1 };
+            var size = { width: 10, height: 10 };
+
+            this.tick = function() {
+                var newX = (direction.x > 0)
+                    ? x + direction.x + size.width
+                    : x + direction.x;
+                var newY = (direction.y > 0)
+                    ? y + direction.y + size.height
+                    : y + direction.y;
+
+                var hitsX = others.filter(function(other) { return other.hitX(newX, y) });
+                var hitsY = others.filter(function(other) { return other.hitY(x, newY) });
+                if(hitsX.length)
+                    direction.x *= -1;
+                if(hitsY.length)
+                    direction.y *= -1;
+
+                x += direction.x;
+                y += direction.y;
+            };
+            this.draw = function() {
+                context.fillStyle = "#333";
+                context.fillRect(x, y, size.width, size.height);
+            }
+        };
+
+        var objects = [
+            new Bat( 10, 10, 'green'),
+            new Bat(945, 10, 'red'),
+            new Wall(0,0,960,1),
+            new Wall(0,399,960,400)
+        ];
+
+        objects.push(new Ball(475, 10, objects.slice(0)));
+
+        var draw = function () {
+            context.clearRect(0, 0, 960, 400);
+
+            objects.forEach(function(obj) { obj.tick(); });
+            objects.forEach(function(obj) { obj.draw(); });
+        };
+
+        setInterval(draw, 2);
+    };
+
+    start();
+</script>
+</body>
+</html>
