@@ -5,7 +5,6 @@
     <title>Pong hack</title>
     <style>
         canvas {
-            border: 1px solid black;
             width: 960px;
             height: 400px;
             background-color: #ccc;
@@ -16,36 +15,110 @@
     <canvas id="canvas" width="960" height="400"></canvas>
 <script>
     var start = function() {
+        var CollisionsDetector = function(allObjects) {
+            this.hasHits = function(requestor, origX, origY, newX, newY) {
+                var others = allObjects.filter(function(o) { return o !== requestor; });
+                return {
+                    x: others.filter(function (other) {
+                        if(other.hitX === undefined)
+                            return false;
+                        return other.hitX(newX, origY);
+                    }),
+                    y: others.filter(function (other) {
+                        if(other.hitY === undefined)
+                            return false;
+                        return other.hitY(origX, newY);
+                    })
+                };
+            }
+        };
+
+
         var context = document.getElementById('canvas').getContext('2d');
+        var gameState = '';
+
+        var objects = [];
+        var collisionsDetector = new CollisionsDetector(objects);
+
+        var KeyboardController = function(up, down) {
+            var keys = {};
+
+            this.getDirection = function () {
+                if(keys[up])
+                    return -1;
+                if(keys[down])
+                    return 1;
+                return 0;
+            };
+
+            document.addEventListener('keydown', function (event) {
+                keys[event.key] = true;
+            });
+
+            document.addEventListener('keyup', function (event) {
+                keys[event.key] = false;
+            });
+        };
+
+        var ActivityArea = function(x1, y1, x2, y2) {
+            var resetGameState = function(newX, newY) {
+                if(newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2)
+                    gameState = 'hit';
+            };
+            this.hitX = function(newX, newY) {
+                resetGameState(newX, newY);
+                return false;
+            };
+            this.hitY = function(newX, newY) {
+                resetGameState(newX, newY);
+                return false;
+            };
+
+            this.draw = function() {
+                context.fillStyle = "orange";
+                context.fillRect(x1, y1, x2 - x1, y2 - y1);
+            }
+        };
+        var isHit = function(newX, newY, x1, y1, x2, y2) {
+            return newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2;
+        };
 
         var Wall = function(x1, y1, x2, y2) {
             this.hitX = function(newX, newY) {
-                return newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2;
+                return isHit(newX, newY, x1, y1, x2, y2);
             };
             this.hitY = function(newX, newY) {
-                return newX >= x1 && newX <= x2 && newY >= y1 && newY <= y2;
+                return isHit(newX, newY, x1, y1, x2, y2);
             };
 
-            this.tick = function() {
-            };
             this.draw = function() {
                 context.fillStyle = "black";
                 context.fillRect(x1, y1, x2 - x1, y2 - y1);
             }
         };
 
-        var Bat = function(x, y, color) {
+        var Bat = function(x, y, color, controller) {
+            var self = this;
             var size = { width: 5, height: 40 };
-            var wall = new Wall(x, y, x + size.width, y + size.height);
 
             this.hitX = function(newX, newY) {
-                return wall.hitX(newX, newY);
+                return isHit(newX, newY, x, y, x + size.width, y + size.height);
             };
             this.hitY = function(newX, newY) {
-                return wall.hitY(newX, newY);
+                return isHit(newX, newY, x, y, x + size.width, y + size.height);
             };
 
             this.tick = function() {
+                var direction = controller.getDirection();
+                var newY = (direction > 0)
+                        ? y + direction + size.height
+                        : y + direction;
+
+                var hits = collisionsDetector.hasHits(self, x, y, x, newY);
+
+                if(!hits.y.length) {
+                    y += direction;
+                }
             };
             this.draw = function() {
                 context.fillStyle = color;
@@ -53,9 +126,17 @@
             }
         };
 
-        var Ball = function(x, y, others) {
+        var Ball = function(xInitial, yInitial) {
+            var self = this;
             var direction = { x: 1, y: 1 };
             var size = { width: 10, height: 10 };
+            var x = xInitial;
+            var y = yInitial;
+
+            this.reset = function() {
+                x = xInitial;
+                y = yInitial;
+            };
 
             this.tick = function() {
                 var newX = (direction.x > 0)
@@ -65,35 +146,42 @@
                     ? y + direction.y + size.height
                     : y + direction.y;
 
-                var hitsX = others.filter(function(other) { return other.hitX(newX, y) });
-                var hitsY = others.filter(function(other) { return other.hitY(x, newY) });
-                if(hitsX.length)
+                var hits = collisionsDetector.hasHits(self, x, y, newX, newY);
+
+                if(hits.x.length) {
                     direction.x *= -1;
-                if(hitsY.length)
+                }
+                if(hits.y.length) {
                     direction.y *= -1;
+                }
 
                 x += direction.x;
                 y += direction.y;
             };
+
             this.draw = function() {
                 context.fillStyle = "#333";
                 context.fillRect(x, y, size.width, size.height);
             }
         };
 
-        var objects = [
-            new Bat( 10, 10, 'green'),
-            new Bat(945, 10, 'red'),
-            new Wall(0,0,960,1),
-            new Wall(0,399,960,400)
-        ];
-
-        objects.push(new Ball(475, 10, objects.slice(0)));
+        objects.push(new Bat( 10, 10, 'green', new KeyboardController('w', 's')));
+        objects.push(new Bat(945, 10, 'red', new KeyboardController('n', 'm')));
+        objects.push(new Wall(0,0,960,1));
+        objects.push(new Wall(0,399,960,400));
+        objects.push(new ActivityArea(0, 0, 5, 400));
+        objects.push(new ActivityArea(955, 0, 960, 400));
+        var ball = new Ball(475, 10);
+        objects.push(ball);
 
         var draw = function () {
             context.clearRect(0, 0, 960, 400);
 
-            objects.forEach(function(obj) { obj.tick(); });
+            objects.forEach(function(obj) { if(obj.tick !== undefined) obj.tick(); });
+            if(gameState !== '') {
+                ball.reset();
+                gameState = '';
+            }
             objects.forEach(function(obj) { obj.draw(); });
         };
 

@@ -14,9 +14,10 @@
  - [ ] Draw score
  - [ ] Draw game field (center line and other graphical gimics)
 - [ ] Behaviour
- - [ ] Catch keyboard input and move bat
+ - [x] Catch keyboard input and move bat
  - [ ] Catch webcam input and move bat
 - [ ] Game logic
  - [x] Let ball bounce on wall
  - [x] Let ball bounce on bat
- - [ ] Score point / count points
+ - [x] Score point
+ - [ ] Count points
