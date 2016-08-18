@@ -13,11 +13,13 @@
  - [x] Give elements different colors
  - [ ] Draw score
  - [ ] Draw game field (center line and other graphical gimics)
-- [ ] Behaviour
+- [x] Behaviour
  - [x] Catch keyboard input and move bat
- - [ ] Catch webcam input and move bat
+ - [x] Catch webcam input and move bat
 - [ ] Game logic
  - [x] Let ball bounce on wall
  - [x] Let ball bounce on bat
  - [x] Score point
  - [ ] Count points
+- [ ] Performance
+ - [ ] read https://developers.google.com/web/tools/chrome-devtools/profile/rendering-tools/analyze-runtime?hl=en 

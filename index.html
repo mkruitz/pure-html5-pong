@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Pong hack</title>
+    <script src="tracking-min.js"></script>
     <style>
         canvas {
             width: 960px;
             height: 400px;
             background-color: #ccc;
         }
+        .camera-detection {
+            position: absolute;
+            top: -1000px;
+        }
     </style>
 </head>
 <body>
     <canvas id="canvas" width="960" height="400"></canvas>
+    <video id="video" class="camera-detection" width="600" height="450" preload autoplay loop muted></video>
 <script>
     var start = function() {
         var CollisionsDetector = function(allObjects) {
@@ -35,10 +41,40 @@
 
 
         var context = document.getElementById('canvas').getContext('2d');
+        var leftPlayer = 0;
+        var rightPlayer = 1;
+
+        var cameraState = [0, 0];
         var gameState = '';
 
         var objects = [];
         var collisionsDetector = new CollisionsDetector(objects);
+
+        var tracker = new tracking.ColorTracker(['cyan']);
+        tracking.track('#video', tracker, { camera: true });
+        tracker.on('track', function(event) {
+            var blk = event.data;
+            var l = cameraState[leftPlayer];
+            var r = cameraState[rightPlayer];
+
+            for(var i = 0; i < blk.length; ++i) {
+                var direction = blk[i].y > 240 ? +1 : -1;
+                if(blk[i].x > 240) {
+                    //left
+                    l = direction;
+                }
+                else {
+                    //right
+                    r = direction;
+                }
+            }
+        });
+
+        var CameraController = function(index) {
+            this.getDirection = function () {
+                return cameraState[index];
+            };
+        };
 
         var KeyboardController = function(up, down) {
             var keys = {};
@@ -165,8 +201,10 @@
             }
         };
 
-        objects.push(new Bat( 10, 10, 'green', new KeyboardController('w', 's')));
-        objects.push(new Bat(945, 10, 'red', new KeyboardController('n', 'm')));
+//        objects.push(new Bat( 10, 10, 'green', new KeyboardController('w', 's')));
+//        objects.push(new Bat(945, 10, 'red', new KeyboardController('n', 'm')));
+        objects.push(new Bat( 10, 10, 'green', new CameraController(leftPlayer)));
+        objects.push(new Bat(945, 10, 'red', new CameraController(rightPlayer)));
         objects.push(new Wall(0,0,960,1));
         objects.push(new Wall(0,399,960,400));
         objects.push(new ActivityArea(0, 0, 5, 400));
@@ -185,7 +223,7 @@
             objects.forEach(function(obj) { obj.draw(); });
         };
 
-        setInterval(draw, 2);
+        setInterval(draw, 10);
     };
 
     start();
